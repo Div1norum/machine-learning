@@ -1,5 +1,7 @@
+from __future__ import division
 import random
 import math
+import numpy
 from environment import Agent, Environment
 from planner import RoutePlanner
 from simulator import Simulator
@@ -23,6 +25,7 @@ class LearningAgent(Agent):
         ## TO DO ##
         ###########
         # Set any additional class parameters as needed
+        self.t = 0
 
 
     def reset(self, destination=None, testing=False):
@@ -39,12 +42,20 @@ class LearningAgent(Agent):
         # Update epsilon using a decay function of your choice
         # Update additional class parameters as needed
         # If 'testing' is True, set epsilon and alpha to 0
+        
         if testing:
             self.epsilon = 0
             self.alpha = 0
         elif not testing:
-            self.epsilon -= 0.05
-
+            self.t += 1
+            #self.epsilon -= 0.05
+            #self.epsilon = (self.alpha**self.t)
+            #self.epsilon = (1.0/self.t**2)
+            self.epsilon = math.fabs(math.sin(math.exp(-self.alpha*self.t)))
+            #self.epsilon = (math.fabs(math.cos(self.alpha*self.t)))
+            #self.epsilon = decay_functions["neg_exp"]
+            #self.epsilon = e
+            
         return
 
     def build_state(self):
@@ -65,9 +76,24 @@ class LearningAgent(Agent):
         # Because the aim of this project is to teach Reinforcement Learning, we have placed 
         # constraints in order for you to learn how to adjust epsilon and alpha, and thus learn about the balance between exploration and exploitation.
         # With the hand-engineered features, this learning process gets entirely negated.
+        # Set 'state' as a tuple of relevant data for the agent
         
-        # Set 'state' as a tuple of relevant data for the agent        
-        state = tuple(waypoint, inputs)
+        def inputsToString(inputs):
+            if inputs['light'] == 'yellow':
+                inputs['light'] = 'green'
+            if inputs['left'] == 'right':
+                inputs['left'] = None
+            out_string = ""
+            for item in inputs:
+                out_string += (str(inputs[item]) + "_")
+            return out_string
+        
+        inputs_string = inputsToString(inputs)
+        waypoints_string = str(waypoint)
+        
+        state = (waypoints_string + "_" + inputs_string)
+        
+        #state = (waypoint, inputs)
 
         return state
 
@@ -83,8 +109,8 @@ class LearningAgent(Agent):
 
         maxQ = None
         for action in self.Q[state]:
-            if self.Q[state][action] > highest:
-                highest = self.Q[state][action]
+            if self.Q[state][action] > maxQ:
+                maxQ = self.Q[state][action]
         return maxQ 
 
 
@@ -107,7 +133,6 @@ class LearningAgent(Agent):
     def choose_action(self, state):
         """ The choose_action function is called when the agent is asked to choose
             which action to take, based on the 'state' the smartcab is in. """
-        from __future__ import division
 
         # Set the agent state and default action
         self.state = state
@@ -127,7 +152,7 @@ class LearningAgent(Agent):
                 action = random.choice(self.valid_actions)
             else:
                 direction_options = []
-                maxQ = get_maxQ(state)
+                maxQ = self.get_maxQ(state)
                 for option in self.Q[state]:
                     if maxQ == self.Q[state][option]:
                         direction_options.append(option)
@@ -150,9 +175,8 @@ class LearningAgent(Agent):
         # When learning, implement the value iteration update rule
         #   Use only the learning rate 'alpha' (do not use the discount factor 'gamma')
         if self.learning:
-            self.Q[state][action] += self.alpha*(reward - self.Q[state][action]
-
-        return
+            self.Q[state][action] += self.alpha*(reward - self.Q[state][action])
+        return None
 
 
     def update(self):
@@ -187,7 +211,7 @@ def run():
     #   learning   - set to True to force the driving agent to use Q-learning
     #    * epsilon - continuous value for the exploration factor, default is 1
     #    * alpha   - continuous value for the learning rate, default is 0.5
-    agent = env.create_agent(LearningAgent, learning=True, epsilon=0.9, alpha=0.42)
+    agent = env.create_agent(LearningAgent, learning=True, epsilon=1, alpha=0.01)
 
     
     ##############
@@ -210,7 +234,7 @@ def run():
     # Flags:
     #   tolerance  - epsilon tolerance before beginning testing, default is 0.05 
     #   n_test     - discrete number of testing trials to perform, default is 0
-    sim.run(n_test=10)
+    sim.run(n_test=10, tolerance=0.01)
 
 
 if __name__ == '__main__':
