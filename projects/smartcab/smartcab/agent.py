@@ -39,8 +39,13 @@ class LearningAgent(Agent):
         # Update epsilon using a decay function of your choice
         # Update additional class parameters as needed
         # If 'testing' is True, set epsilon and alpha to 0
+        if testing:
+            self.epsilon = 0
+            self.alpha = 0
+        elif not testing:
+            self.epsilon -= 0.05
 
-        return None
+        return
 
     def build_state(self):
         """ The build_state function is called when the agent requests data from the 
@@ -62,7 +67,7 @@ class LearningAgent(Agent):
         # With the hand-engineered features, this learning process gets entirely negated.
         
         # Set 'state' as a tuple of relevant data for the agent        
-        state = (waypoint, inputs)
+        state = tuple(waypoint, inputs)
 
         return state
 
@@ -77,7 +82,9 @@ class LearningAgent(Agent):
         # Calculate the maximum Q-value of all actions for a given state
 
         maxQ = None
-
+        for action in self.Q[state]:
+            if self.Q[state][action] > highest:
+                highest = self.Q[state][action]
         return maxQ 
 
 
@@ -90,13 +97,17 @@ class LearningAgent(Agent):
         # When learning, check if the 'state' is not in the Q-table
         # If it is not, create a new dictionary for that state
         #   Then, for each action available, set the initial Q-value to 0.0
-
-        return
+        
+        if self.learning:
+            self.Q[state] = self.Q.get(state, {'left':0.0, 'right':0.0, 'forward':0.0, None:0.0})
+         
+        return 
 
 
     def choose_action(self, state):
         """ The choose_action function is called when the agent is asked to choose
             which action to take, based on the 'state' the smartcab is in. """
+        from __future__ import division
 
         # Set the agent state and default action
         self.state = state
@@ -112,13 +123,19 @@ class LearningAgent(Agent):
         # Be sure that when choosing an action with highest Q-value that you randomly select between actions that "tie".
         
         if self.learning:
-            action = random.choice(self.valid_actions)
-        elif not self.learning:
-            action = random.choice(self.valid_actions)
+            if random.random() < self.epsilon:
+                action = random.choice(self.valid_actions)
+            else:
+                direction_options = []
+                maxQ = get_maxQ(state)
+                for option in self.Q[state]:
+                    if maxQ == self.Q[state][option]:
+                        direction_options.append(option)
+                action = random.choice(direction_options)
+                        
         else:
             action = random.choice(self.valid_actions)
             
-        
         return action
 
 
@@ -132,6 +149,8 @@ class LearningAgent(Agent):
         ###########
         # When learning, implement the value iteration update rule
         #   Use only the learning rate 'alpha' (do not use the discount factor 'gamma')
+        if self.learning:
+            self.Q[state][action] += self.alpha*(reward - self.Q[state][action]
 
         return
 
@@ -168,7 +187,8 @@ def run():
     #   learning   - set to True to force the driving agent to use Q-learning
     #    * epsilon - continuous value for the exploration factor, default is 1
     #    * alpha   - continuous value for the learning rate, default is 0.5
-    agent = env.create_agent(LearningAgent, learning=True, epsilon=0.8, alpha=0.42)
+    agent = env.create_agent(LearningAgent, learning=True, epsilon=0.9, alpha=0.42)
+
     
     ##############
     # Follow the driving agent
