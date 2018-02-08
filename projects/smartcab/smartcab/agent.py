@@ -62,7 +62,7 @@ class LearningAgent(Agent):
         # With the hand-engineered features, this learning process gets entirely negated.
         
         # Set 'state' as a tuple of relevant data for the agent        
-        state = (waypoint, inputs)
+        state = tuple(waypoint, inputs)
 
         return state
 
@@ -75,8 +75,12 @@ class LearningAgent(Agent):
         ## TO DO ##
         ###########
         # Calculate the maximum Q-value of all actions for a given state
+        highest = None
+        for action in state:
+            if self.Q(action) > highest:
+                highest = self.Q(action)
 
-        maxQ = None
+        maxQ = highest
 
         return maxQ 
 
@@ -97,6 +101,7 @@ class LearningAgent(Agent):
     def choose_action(self, state):
         """ The choose_action function is called when the agent is asked to choose
             which action to take, based on the 'state' the smartcab is in. """
+        from __future__ import division
 
         # Set the agent state and default action
         self.state = state
@@ -112,7 +117,10 @@ class LearningAgent(Agent):
         # Be sure that when choosing an action with highest Q-value that you randomly select between actions that "tie".
         
         if self.learning:
-            action = random.choice(self.valid_actions)
+            if random.randrange(0,100)/100 < self.epsilon:
+                action = random.choice(self.valid_actions)
+            else:
+                
         elif not self.learning:
             action = random.choice(self.valid_actions)
         else:
@@ -132,8 +140,9 @@ class LearningAgent(Agent):
         ###########
         # When learning, implement the value iteration update rule
         #   Use only the learning rate 'alpha' (do not use the discount factor 'gamma')
+        value = self.alpha*reward + (1 - self.alpha)*get_maxQ(state)
 
-        return
+        return value
 
 
     def update(self):
@@ -168,7 +177,7 @@ def run():
     #   learning   - set to True to force the driving agent to use Q-learning
     #    * epsilon - continuous value for the exploration factor, default is 1
     #    * alpha   - continuous value for the learning rate, default is 0.5
-    agent = env.create_agent(LearningAgent, learning=True, epsilon=-0.05)
+    agent = env.create_agent(LearningAgent, learning=False)
     
     ##############
     # Follow the driving agent
