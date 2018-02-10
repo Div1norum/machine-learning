@@ -51,9 +51,8 @@ class LearningAgent(Agent):
             #self.epsilon -= 0.05
             #self.epsilon = (self.alpha**self.t)
             #self.epsilon = (1.0/self.t**2)
-            self.epsilon = math.fabs(math.sin(math.exp(-self.alpha*self.t)))
-            #self.epsilon = (math.fabs(math.cos(self.alpha*self.t)))
-            #self.epsilon = decay_functions["neg_exp"]
+            #self.epsilon = math.fabs(math.sin(math.exp(0.2*self.t)))
+            self.epsilon = (math.fabs(math.cos(0.1*self.t)))
             #self.epsilon = e
             
         return
@@ -79,21 +78,29 @@ class LearningAgent(Agent):
         # Set 'state' as a tuple of relevant data for the agent
         
         def inputsToString(inputs):
-            if inputs['light'] == 'yellow':
-                inputs['light'] = 'green'
-            if inputs['left'] == 'right':
-                inputs['left'] = None
             out_string = ""
             for item in inputs:
                 out_string += (str(inputs[item]) + "_")
             return out_string
         
+        def deadlineToString(deadline):
+            out_string = ""
+            if deadline < 10:
+                out_string = "unreliable"
+            elif deadline >= 10:
+                out_string = "reliable"
+            return out_string
+        
         inputs_string = inputsToString(inputs)
         waypoints_string = str(waypoint)
+        # deadline was added later on as an attempt to improve efficiency
+        deadline_string = deadlineToString(deadline)
         
+        # use the 'state' definition below to implement the original setting I made, with no 'deadline' feature
         state = (waypoints_string + "_" + inputs_string)
         
-        #state = (waypoint, inputs)
+        # use the 'state' definition below to implement deadline, doubling the number of possible states
+        #state = (waypoints_string + "_" + inputs_string + deadline_string)
 
         return state
 
@@ -211,7 +218,10 @@ def run():
     #   learning   - set to True to force the driving agent to use Q-learning
     #    * epsilon - continuous value for the exploration factor, default is 1
     #    * alpha   - continuous value for the learning rate, default is 0.5
-    agent = env.create_agent(LearningAgent, learning=True, epsilon=1, alpha=0.01)
+    agent = env.create_agent(LearningAgent, learning=True, epsilon=1, alpha=0.5)
+    
+    # The below setting received an A+ for safety, A for reliability with the sinusoidal exp decay formula
+    #agent = env.create_agent(LearningAgent, learning=True, epsilon=1, alpha=0.01)
 
     
     ##############
@@ -227,14 +237,14 @@ def run():
     #   display      - set to False to disable the GUI if PyGame is enabled
     #   log_metrics  - set to True to log trial and simulation results to /logs
     #   optimized    - set to True to change the default log file name
-    sim = Simulator(env, update_delay=0.01, log_metrics=True, optimized=True)
+    sim = Simulator(env, update_delay=0.001, log_metrics=True, optimized=True)
     
     ##############
     # Run the simulator
     # Flags:
     #   tolerance  - epsilon tolerance before beginning testing, default is 0.05 
     #   n_test     - discrete number of testing trials to perform, default is 0
-    sim.run(n_test=10, tolerance=0.01)
+    sim.run(n_test=50, tolerance=0.001)
 
 
 if __name__ == '__main__':
